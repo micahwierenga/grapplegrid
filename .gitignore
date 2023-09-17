@@ -26,6 +26,9 @@ Homestead.json
 /.vagrant
 .phpunit.result.cache
 
+### Vite ###
+.vite/
+
 ### Vue ###
 # gitignore template for Vue.js projects
 #
