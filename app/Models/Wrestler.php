@@ -12,8 +12,9 @@ class Wrestler extends Model
     use HasFactory;
 
     public string $name;
+    public string $slug;
 
-    protected $fillable = ['name'];
+    protected $fillable = ['name', 'slug'];
 
     public function categories(): BelongsToMany
     {
