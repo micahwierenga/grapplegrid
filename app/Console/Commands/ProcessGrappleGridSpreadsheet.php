@@ -47,6 +47,7 @@ class ProcessGrappleGridSpreadsheet extends Command
             if (!in_array(strtolower($header), ['id', 'wrestler'])) {
                 Category::firstOrCreate([
                     'name' => $header,
+                    'slug' => $this->createSlug($header),
                 ]);
             }
         }
@@ -59,6 +60,7 @@ class ProcessGrappleGridSpreadsheet extends Command
         foreach ($prepared_records as $wrestler_key => $prepared_record) {
             $wrestler = Wrestler::firstOrCreate([
                 'name' => $wrestler_key,
+                'slug' => $this->createSlug($wrestler_key),
             ]);
             foreach ($prepared_record as $category_key => $value) {
                 // Create row in pivot table
@@ -80,5 +82,10 @@ class ProcessGrappleGridSpreadsheet extends Command
         }
 
         return $prepared_records;
+    }
+
+    private function createSlug(string $name): string
+    {
+        return str_replace(' ', '-', strtolower(trim($name)));
     }
 }
