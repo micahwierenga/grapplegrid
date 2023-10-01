@@ -1,4 +1,7 @@
 <script setup>
+import { inject } from 'vue';
+
+const wrestlers = inject('$wrestlers');
 
 defineProps({
     cell: Object|String,
