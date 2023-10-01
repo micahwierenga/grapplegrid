@@ -1,8 +1,10 @@
 <script setup>
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, reactive, onMounted } from 'vue';
+import { router, Head, Link } from '@inertiajs/vue3';
 import { headerNavItems, footerNavItems, supportNavItems } from '@/constants/navItems.js';
 import Banner from '@/Components/Banner.vue';
-import GridRow from '@/Components/GridRow.vue';
+import GridRow from '@/Components/Grid/GridRow.vue';
+import SearchModal from '@/Components/Common/SearchModal.vue';
 
 defineProps({
     banner: {
@@ -11,6 +13,47 @@ defineProps({
     cells: {
         type: Object,
     },
+    wrestlers: {
+        type: Array,
+    },
+});
+
+const initialSelection = {
+    wrestlerSlug: '',
+    categories: [],
+    cellKey: '',
+}
+
+const searchModalIsOpen = ref(false);
+const selection = reactive({ ...initialSelection });
+
+function resetSelection() {
+    Object.assign(selection, initialSelection);
+}
+
+function toggleSearchModal() {
+    searchModalIsOpen.value = !searchModalIsOpen.value;
+}
+
+function selectCellData(cellData) {
+    selection.categories = [...cellData.categories];
+    selection.cellKey = cellData.key;
+    toggleSearchModal();
+}
+
+function selectWrestler(wrestlerSlug) {
+    selection.wrestlerSlug = wrestlerSlug;
+
+    toggleSearchModal();
+    router.get(route('grid'), {
+        selectedCellKey: selection.cellKey,
+        selectedCategories: selection.categories,
+        selectedWrestlerSlug: selection.wrestlerSlug,
+    });
+}
+
+onMounted(() => {
+    resetSelection();
 });
 </script>
 
@@ -78,6 +121,13 @@ defineProps({
         <GridRow
             v-for="cellRow in cells"
             :cell-row="cellRow"
+            @select-cell-data="selectCellData"
+        />
+        <SearchModal
+            @toggle-search-modal="toggleSearchModal"
+            @select-wrestler="selectWrestler"
+            :open="searchModalIsOpen"
+            :wrestlers="wrestlers"
         />
         <!-- Footer -->
         <footer class="border-t dark:border-gray-950 bg-white dark:bg-gray-800 text-gray-900 text-sm w-screen py-6 flex justify-center mt-8 flex-shrink-0">
