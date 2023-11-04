@@ -8,16 +8,19 @@ defineProps({
 const emit = defineEmits(['selectCellData']);
 
 function handleToggleSearchModal(cellData, key) {
-    emit('selectCellData', { categories: cellData.categories, key });
+    if (!cellData.is_header && !cellData.selection.name) {
+        emit('selectCellData', { categorySlugs: cellData.category_slugs, key });
+    }
 }
 </script>
 
 <template>
     <div class="flex items-center">
         <GridCell
+            @click="handleToggleSearchModal(cell, i)"
             v-for="(cell, i) in cellRow"
             :cell="cell"
-            @click="handleToggleSearchModal(cell, i)"
+            :class="!cell.is_header && !cell.selection.name ? 'cursor-pointer' : ''"
         />
     </div>
 </template>
