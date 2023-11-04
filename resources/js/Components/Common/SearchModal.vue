@@ -29,8 +29,10 @@ const filteredWrestlers = computed(() => {
 });
 
 function selectItem(wrestler) {
-    selectedWrestler.value = wrestler;
-    isVisible.value = false;
+    if (!wrestler.already_used) {
+        selectedWrestler.value = wrestler;
+        isVisible.value = false;
+    }
 }
 
 function handleToggleSearchModal() {
@@ -121,9 +123,10 @@ function emitSelectedWrestler() {
                                                 @click="selectItem(wrestler)"
                                                 v-for="(wrestler, i) in filteredWrestlers"
                                                 :key="`wrestler-${i}`"
-                                                class="w-full p-2 bg-gray-100 border border-solid border-gray-300 text-xs cursor-pointe hover:bg-gray-500 hover:text-white hover:font-bold"
+                                                class="flex justify-between w-full p-2 bg-gray-100 border border-solid border-gray-300 text-xs"
+                                                :class="wrestler.already_used ? 'bg-gray-800 text-white' : 'cursor-pointer hover:bg-gray-500 hover:text-white hover:font-bold'"
                                             >
-                                                {{ wrestler.name }}
+                                                <span>{{ wrestler.name }}</span><span>{{ wrestler.already_used ? 'Already used' : '' }}</span>
                                             </li>
                                         </ul>
                                     </div>
