@@ -1,12 +1,13 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { router, Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
+import axios from 'axios';
 import { headerNavItems, footerNavItems, supportNavItems } from '@/constants/navItems.js';
 import Banner from '@/Components/Banner.vue';
 import GridRow from '@/Components/Grid/GridRow.vue';
 import SearchModal from '@/Components/Common/SearchModal.vue';
 
-defineProps({
+const props = defineProps({
     banner: {
         type: Object,
     },
@@ -20,40 +21,116 @@ defineProps({
 
 const initialSelection = {
     wrestlerSlug: '',
-    categories: [],
+    categorySlugs: [],
     cellKey: '',
 }
 
 const searchModalIsOpen = ref(false);
+const gridCells = ref(props.cells);
+const gridWrestlers = ref(props.wrestlers);
 const selection = reactive({ ...initialSelection });
+
+const today = new Date();
+const month = (today.getMonth() + 1).toString().padStart(2, '0');
+const day = today.getDate().toString().padStart(2, '0');
+const timestamp = `${today.getFullYear()}${month}${day}`;
 
 function resetSelection() {
     Object.assign(selection, initialSelection);
+}
+
+function createTodaysGridInLocalStorage() {
+    const localStorageGrid = getGridFromLocalStorage();
+    if (!localStorageGrid) {
+        const newGrid = {
+            [timestamp]: [],
+        }
+        localStorage.setItem('grid', JSON.stringify(newGrid));
+    } else if (!localStorageGrid[timestamp]) {
+        const updatedGrid = {
+            ...localStorageGrid,
+            [timestamp]: [],
+        }
+        localStorage.setItem('grid', JSON.stringify(updatedGrid));
+    }
+}
+
+function getGridFromLocalStorage() {
+    return JSON.parse(localStorage.getItem('grid'));
 }
 
 function toggleSearchModal() {
     searchModalIsOpen.value = !searchModalIsOpen.value;
 }
 
+function selectionIsValid(selection) {
+    return selection.wrestlerSlug
+        && selection.cellKey
+        && selection.categorySlugs.length;
+}
+
 function selectCellData(cellData) {
-    selection.categories = [...cellData.categories];
+    selection.categorySlugs = [...cellData.categorySlugs];
     selection.cellKey = cellData.key;
+
     toggleSearchModal();
 }
 
-function selectWrestler(wrestlerSlug) {
+function loadInitialExistingSelections() {
+    axios
+        .get(route('grid.selection', {
+            existingSelections: getGridFromLocalStorage()[timestamp],
+        }))
+        .then(data => {
+            gridCells.value = data.data.cells;
+            gridWrestlers.value = data.data.wrestlers;
+
+            if (selectionIsValid(selection)) {
+                const localStorageGrid = getGridFromLocalStorage()[timestamp];
+                const updatedGrid = {
+                    ...localStorageGrid,
+                    [timestamp]: [...localStorageGrid[timestamp], selection],
+                }
+                window.localStorage.setItem('grid', JSON.stringify(updatedGrid));
+            }
+
+            resetSelection();
+        });
+}
+
+function submitSelection(wrestlerSlug) {
     selection.wrestlerSlug = wrestlerSlug;
 
     toggleSearchModal();
-    router.get(route('grid'), {
-        selectedCellKey: selection.cellKey,
-        selectedCategories: selection.categories,
-        selectedWrestlerSlug: selection.wrestlerSlug,
-    });
+
+    axios
+        .get(route('grid.selection', {
+            selectedCellKey: selection.cellKey,
+            selectedCategorySlugs: selection.categorySlugs,
+            selectedWrestlerSlug: selection.wrestlerSlug,
+            existingSelections: getGridFromLocalStorage()[timestamp],
+        }))
+        .then(data => {
+            gridCells.value = data.data.cells;
+            gridWrestlers.value = data.data.wrestlers;
+
+            if (selectionIsValid(selection)) {
+                const localStorageGrid = getGridFromLocalStorage();
+                const updatedGrid = {
+                    ...localStorageGrid,
+                    [timestamp]: [...localStorageGrid[timestamp], selection],
+                }
+                window.localStorage.setItem('grid', JSON.stringify(updatedGrid));
+            }
+
+            resetSelection();
+        });
 }
 
 onMounted(() => {
+    createTodaysGridInLocalStorage();
     resetSelection();
+    loadInitialExistingSelections();
 });
 </script>
 
@@ -119,15 +196,15 @@ onMounted(() => {
             </div>
         </div>
         <GridRow
-            v-for="cellRow in cells"
+            v-for="cellRow in gridCells"
             :cell-row="cellRow"
             @select-cell-data="selectCellData"
         />
         <SearchModal
             @toggle-search-modal="toggleSearchModal"
-            @select-wrestler="selectWrestler"
+            @select-wrestler="submitSelection"
             :open="searchModalIsOpen"
-            :wrestlers="wrestlers"
+            :wrestlers="gridWrestlers"
         />
         <!-- Footer -->
         <footer class="border-t dark:border-gray-950 bg-white dark:bg-gray-800 text-gray-900 text-sm w-screen py-6 flex justify-center mt-8 flex-shrink-0">
